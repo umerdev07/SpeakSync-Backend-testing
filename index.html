@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Urdu ↔ English Live Translator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & base ─────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #f7f5f2;
+    --surface:   #ffffff;
+    --border:    #e4e0d8;
+    --ink:       #1a1814;
+    --ink2:      #6b6560;
+    --accent:    #c84b2f;
+    --accent2:   #e8825c;
+    --green:     #2e7d5e;
+    --green-lt:  #e6f4ef;
+    --red-lt:    #fdf0ed;
+    --radius:    14px;
+    --shadow:    0 2px 20px rgba(0,0,0,.07);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,.12);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── Layout ───────────────────────────────────── */
+  .app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 60px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--ink2);
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Connection card ──────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px 28px;
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 16px;
+  }
+
+  .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink2);
+    margin-bottom: 10px;
+  }
+
+  /* ── Status bar ───────────────────────────────── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--ink2);
+    margin-bottom: 20px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    flex-shrink: 0;
+    transition: background .3s;
+  }
+  .status-dot.connecting { background: #f5a623; animation: pulse 1s infinite; }
+  .status-dot.connected  { background: var(--green); }
+  .status-dot.error      { background: var(--accent); }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: .3; }
+  }
+
+  /* ── Language selector row ────────────────────── */
+  .lang-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .lang-select {
+    flex: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6560'/%3E%3C/svg%3E") no-repeat right 12px center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 32px 10px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+
+  .lang-select:focus { outline: none; border-color: var(--accent); }
+
+  .swap-btn {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .2s;
+    color: var(--ink2);
+  }
+  .swap-btn:hover { border-color: var(--accent); color: var(--accent); transform: rotate(180deg); }
+
+  /* ── Connect button ───────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all .18s;
+  }
+
+  .btn-primary {
+    background: var(--ink);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #333; }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+
+  .btn-danger {
+    background: var(--red-lt);
+    color: var(--accent);
+    border: 1px solid #f0c4b8;
+  }
+  .btn-danger:hover { background: #fbe5de; }
+
+  .btn-record {
+    width: 100%;
+    justify-content: center;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    background: var(--ink);
+    color: #fff;
+    transition: all .2s;
+  }
+  .btn-record.recording {
+    background: var(--accent);
+    animation: record-pulse 1.4s ease-in-out infinite;
+  }
+  .btn-record:disabled { background: #ccc; cursor: not-allowed; }
+
+  @keyframes record-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(200,75,47,.4); }
+    50%      { box-shadow: 0 0 0 12px rgba(200,75,47,0); }
+  }
+
+  /* ── Transcript area ──────────────────────────── */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  @media (max-width: 560px) { .panels { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    min-height: 120px;
+  }
+
+  .panel-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink2);
+    margin-bottom: 8px;
+  }
+
+  .panel-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink);
+    min-height: 60px;
+  }
+
+  .panel-text.ur {
+    font-size: 18px;
+    direction: rtl;
+    text-align: right;
+  }
+
+  .placeholder-text {
+    color: #bbb;
+    font-style: italic;
+    font-size: 13px;
+  }
+
+  /* ── Log / history ────────────────────────────── */
+  .log {
+    width: 100%;
+    max-width: 680px;
+    margin-top: 16px;
+  }
+
+  .log-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink2);
+    margin-bottom: 10px;
+    padding: 0 4px;
+  }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .log-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    font-size: 13px;
+    animation: slide-in .25s ease;
+  }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-item .orig { color: var(--ink); }
+  .log-item .trans { color: var(--accent); direction: rtl; text-align: right; }
+  .log-item .meta {
+    grid-column: 1/-1;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #bbb;
+    display: flex;
+    gap: 12px;
+  }
+
+  /* ── Incoming audio badge ─────────────────────── */
+  .incoming-badge {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: var(--green-lt);
+    color: var(--green);
+    border: 1px solid #b8ddd0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    margin-top: 12px;
+    animation: slide-in .2s;
+  }
+  .incoming-badge.show { display: flex; }
+
+  /* ── Divider ──────────────────────────────────── */
+  .divider {
+    width: 100%; max-width: 680px;
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 8px 0;
+  }
+
+  /* ── Waveform ─────────────────────────────────── */
+  .waveform {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 12px;
+  }
+
+  .wave-bar {
+    width: 3px;
+    height: 4px;
+    background: var(--accent2);
+    border-radius: 2px;
+    transition: height .1s;
+  }
+
+  /* ── Scrollbar ────────────────────────────────── */
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: transparent; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-row">
+      <div class="logo-dot"></div>
+      <h1>Live Translator</h1>
+      <div class="logo-dot"></div>
+    </div>
+    <p class="subtitle">English ↔ اردو · Real-time Speech</p>
+  </header>
+
+  <!-- Connection & Controls Card -->
+  <div class="card">
+
+    <!-- Status -->
+    <div class="card-label">Connection</div>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Not connected</span>
+    </div>
+
+    <!-- Language row -->
+    <div class="card-label">Language Direction</div>
+    <div class="lang-row" style="margin-bottom:20px">
+      <select class="lang-select" id="srcLang">
+        <option value="en">🇬🇧 English</option>
+        <option value="ur">🇵🇰 Urdu / اردو</option>
+      </select>
+      <button class="swap-btn" id="swapBtn" title="Swap languages">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 16V4m0 0L3 8m4-4 4 4"/><path d="M17 8v12m0 0 4-4m-4 4-4-4"/>
+        </svg>
+      </button>
+      <select class="lang-select" id="tgtLang">
+        <option value="ur">🇵🇰 Urdu / اردو</option>
+        <option value="en">🇬🇧 English</option>
+      </select>
+    </div>
+
+    <!-- Connect / Disconnect buttons -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="connectBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+        Connect
+      </button>
+      <button class="btn btn-danger" id="disconnectBtn" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Disconnect
+      </button>
+    </div>
+
+    <!-- Incoming audio badge -->
+    <div class="incoming-badge" id="incomingBadge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+      Incoming translation received
+    </div>
+
+    <!-- Record button + waveform -->
+    <div style="margin-top:20px">
+      <button class="btn btn-record" id="recordBtn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+        <span id="recordLabel">Hold to Speak</span>
+      </button>
+
+      <!-- Waveform visualiser -->
+      <div class="waveform" id="waveform"></div>
+    </div>
+
+    <!-- Transcript panels -->
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">You said</div>
+        <div class="panel-text" id="origText">
+          <span class="placeholder-text">Your speech will appear here…</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Translation</div>
+        <div class="panel-text ur" id="transText">
+          <span class="placeholder-text">ترجمہ یہاں ظاہر ہوگا…</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+
+  <!-- History log -->
+  <div class="log">
+    <div class="log-header">Conversation history</div>
+    <div class="log-list" id="logList">
+      <div style="color:#bbb;font-size:13px;padding:4px">No messages yet.</div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  CONFIG — paste your ngrok HTTPS URL here (no trailing slash)
+// ══════════════════════════════════════════════════════════════════
+const NGROK_URL = "https://convene-chowtime-dripping.ngrok-free.dev";
+
+// ══════════════════════════════════════════════════════════════════
+//  IDs — change room/peer if you want multiple sessions
+// ══════════════════════════════════════════════════════════════════
+const ROOM_ID = "room1";
+const PEER_ID = "peer-" + Math.random().toString(36).slice(2, 7);
+
+// ── DOM refs ──────────────────────────────────────────────────────
+const statusDot    = document.getElementById("statusDot");
+const statusText   = document.getElementById("statusText");
+const connectBtn   = document.getElementById("connectBtn");
+const disconnectBtn= document.getElementById("disconnectBtn");
+const recordBtn    = document.getElementById("recordBtn");
+const recordLabel  = document.getElementById("recordLabel");
+const origText     = document.getElementById("origText");
+const transText    = document.getElementById("transText");
+const logList      = document.getElementById("logList");
+const srcLangSel   = document.getElementById("srcLang");
+const tgtLangSel   = document.getElementById("tgtLang");
+const swapBtn      = document.getElementById("swapBtn");
+const incomingBadge= document.getElementById("incomingBadge");
+const waveformEl   = document.getElementById("waveform");
+
+// ── State ─────────────────────────────────────────────────────────
+let ws            = null;
+let mediaRecorder = null;
+let audioStream   = null;
+let isRecording   = false;
+let audioCtx      = null;
+let analyser      = null;
+let animFrame     = null;
+let logEmpty      = true;
+
+// Build waveform bars
+const BARS = 24;
+const bars = [];
+for (let i = 0; i < BARS; i++) {
+  const b = document.createElement("div");
+  b.className = "wave-bar";
+  waveformEl.appendChild(b);
+  bars.push(b);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function setStatus(state, msg) {
+  statusDot.className = "status-dot " + state;
+  statusText.textContent = msg;
+}
+
+function wsUrl() {
+  // Strip any trailing slash to prevent double-slash in path
+  const clean = NGROK_URL.replace(/\/+$/, "");
+  // Convert https → wss  (ngrok always uses TLS)
+  const base  = clean.replace(/^https/, "wss").replace(/^http/, "ws");
+  // ?ngrok-skip-browser-warning bypasses ngrok's 403 interstitial page
+  return `${base}/ws/translation/${ROOM_ID}/${PEER_ID}?ngrok-skip-browser-warning=true`;
+}
+
+// ── Autoplay-blocked fallback ─────────────────────────────────────
+function showPlayPrompt(url) {
+  // Remove any existing prompt
+  const existing = document.getElementById("playPrompt");
+  if (existing) existing.remove();
+
+  const btn = document.createElement("button");
+  btn.id = "playPrompt";
+  btn.className = "btn btn-primary";
+  btn.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.2)";
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Play Translation`;
+  btn.onclick = () => {
+    const audio = new Audio(url);
+    audio.onended = () => { URL.revokeObjectURL(url); btn.remove(); };
+    audio.play();
+    btn.remove();
+  };
+  document.body.appendChild(btn);
+  // Auto-remove after 10s
+  setTimeout(() => { if (btn.parentNode) { URL.revokeObjectURL(url); btn.remove(); } }, 10000);
+}
+
+function showIncoming() {
+  incomingBadge.classList.add("show");
+  clearTimeout(showIncoming._t);
+  showIncoming._t = setTimeout(() => incomingBadge.classList.remove("show"), 3000);
+}
+
+function addLog(original, translated, latency, direction) {
+  if (logEmpty) {
+    logList.innerHTML = "";
+    logEmpty = false;
+  }
+  const item = document.createElement("div");
+  item.className = "log-item";
+
+  const isUrSrc = direction && direction.startsWith("ur");
+  item.innerHTML = `
+    <div class="orig" style="${isUrSrc ? 'direction:rtl;text-align:right' : ''}">${escHtml(original)}</div>
+    <div class="trans" style="${isUrSrc ? 'direction:ltr;text-align:left' : ''}">${escHtml(translated)}</div>
+    <div class="meta">
+      <span>${new Date().toLocaleTimeString()}</span>
+      <span>${latency} ms</span>
+      <span>${direction || ''}</span>
+    </div>`;
+  logList.prepend(item);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────
+function connect() {
+  if (ws) return;
+  setStatus("connecting", "Connecting…");
+  connectBtn.disabled = true;
+
+  try {
+    ws = new WebSocket(wsUrl());
+  } catch(e) {
+    setStatus("error", "Invalid URL — check NGROK_URL");
+    connectBtn.disabled = false;
+    return;
+  }
+
+  ws.onopen = () => {
+    setStatus("connected", `Connected · ${PEER_ID}`);
+    connectBtn.style.display = "none";
+    disconnectBtn.style.display = "";
+    recordBtn.disabled = false;
+
+    // Send language config
+    ws.send(JSON.stringify({
+      type: "language-config",
+      srcLang: srcLangSel.value,
+      tgtLang: tgtLangSel.value,
+    }));
+
+    // Keep-alive ping every 20s
+    ws._ping = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN)
+        ws.send(JSON.stringify({type: "ping"}));
+    }, 20000);
+  };
+
+  // pendingTranscript: holds the last transcript msg awaiting its audio blob
+  // Backend always sends: JSON (transcript/incoming_translation) THEN audio bytes
+  let pendingTranscript = null;
+
+  ws.onmessage = async (evt) => {
+    // ── Binary blob = TTS audio ──────────────────────────────────
+    if (evt.data instanceof Blob) {
+      if (evt.data.size < 100) return;  // ignore empty blobs
+      const url = URL.createObjectURL(evt.data);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+
+      // Try autoplay; if blocked show a manual play button
+      audio.play().catch(() => showPlayPrompt(url));
+
+      if (pendingTranscript) {
+        // This blob belongs to OUR OWN speech result — already showed text
+        pendingTranscript = null;
+      } else {
+        // This blob is from a REMOTE peer
+        showIncoming();
+      }
+      return;
+    }
+
+    // ── Text JSON ─────────────────────────────────────────────────
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch { return; }
+
+    if (msg.type === "transcript") {
+      // Our own speech — audio blob arrives right after this JSON
+      pendingTranscript = msg;
+      origText.textContent  = msg.original   || "—";
+      transText.textContent = msg.translated || "—";
+      addLog(msg.original, msg.translated, msg.latency_ms,
+             `${srcLangSel.value} → ${tgtLangSel.value}`);
+
+    } else if (msg.type === "incoming_translation") {
+      // Remote peer's speech text — their audio blob comes right after
+      pendingTranscript = null;
+      origText.textContent  = msg.original   || "—";
+      transText.textContent = msg.translated || "—";
+      addLog(msg.original, msg.translated, msg.latency_ms, "remote → me");
+
+    } else if (msg.type === "ack") {
+      setStatus("connected", `Ready · ${msg.srcLang} → ${msg.tgtLang}`);
+    }
+    // pong / peer-languages silently ignored
+  };
+
+  ws.onerror = () => {
+    setStatus("error", "WebSocket error — check URL / server");
+  };
+
+  ws.onclose = () => {
+    setStatus("error", "Disconnected");
+    cleanup();
+  };
+}
+
+function disconnect() {
+  if (ws) { ws.close(); ws = null; }
+  cleanup();
+}
+
+function cleanup() {
+  if (ws && ws._ping) clearInterval(ws._ping);
+  stopRecording();
+  connectBtn.style.display = "";
+  connectBtn.disabled = false;
+  disconnectBtn.style.display = "none";
+  recordBtn.disabled = true;
+  setStatus("", "Not connected");
+}
+
+// ── Language swap ─────────────────────────────────────────────────
+swapBtn.addEventListener("click", () => {
+  const tmp = srcLangSel.value;
+  srcLangSel.value = tgtLangSel.value;
+  tgtLangSel.value = tmp;
+
+  // If connected, re-send config
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: "language-config",
+      srcLang: srcLangSel.value,
+      tgtLang: tgtLangSel.value,
+    }));
+  }
+});
+
+// ── Recording ─────────────────────────────────────────────────────
+async function startRecording() {
+  if (isRecording || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+  try {
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e) {
+    alert("Microphone access denied. Please allow microphone and try again.");
+    return;
+  }
+
+  // Waveform analyser
+  audioCtx  = new AudioContext();
+  analyser  = audioCtx.createAnalyser();
+  analyser.fftSize = 64;
+  const src = audioCtx.createMediaStreamSource(audioStream);
+  src.connect(analyser);
+  drawWaveform();
+
+  // Pick supported MIME
+  const mimeTypes = ["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/ogg"];
+  const mime = mimeTypes.find(m => MediaRecorder.isTypeSupported(m)) || "";
+
+  mediaRecorder = new MediaRecorder(audioStream, mime ? { mimeType: mime } : {});
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(e.data);
+    }
+  };
+
+  mediaRecorder.start(4000); // 250ms chunks
+  isRecording = true;
+  recordBtn.classList.add("recording");
+  recordLabel.textContent = "Recording… (click to stop)";
+}
+
+function stopRecording() {
+  if (!isRecording) return;
+  isRecording = false;
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+  if (audioStream) {
+    audioStream.getTracks().forEach(t => t.stop());
+    audioStream = null;
+  }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  cancelAnimationFrame(animFrame);
+  bars.forEach(b => b.style.height = "4px");
+  recordBtn.classList.remove("recording");
+  recordLabel.textContent = "Hold to Speak";
+}
+
+// Toggle on click
+recordBtn.addEventListener("click", () => {
+  if (isRecording) stopRecording();
+  else startRecording();
+});
+
+// ── Waveform animation ────────────────────────────────────────────
+function drawWaveform() {
+  if (!analyser) return;
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+
+  for (let i = 0; i < BARS; i++) {
+    const idx   = Math.floor(i * data.length / BARS);
+    const val   = data[idx] / 255;
+    const h     = Math.max(4, val * 36);
+    bars[i].style.height = h + "px";
+  }
+
+  animFrame = requestAnimationFrame(drawWaveform);
+}
+
+// ── Button wiring ─────────────────────────────────────────────────
+connectBtn.addEventListener("click", connect);
+disconnectBtn.addEventListener("click", disconnect);
+</script>
+</body>
+</html>
