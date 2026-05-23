@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
-  /* ── Reset & base ─────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -35,7 +34,6 @@
     line-height: 1.6;
   }
 
-  /* ── Layout ───────────────────────────────────── */
   .app {
     min-height: 100vh;
     display: flex;
@@ -79,7 +77,6 @@
     letter-spacing: 0.04em;
   }
 
-  /* ── Connection card ──────────────────────────── */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -101,7 +98,6 @@
     margin-bottom: 10px;
   }
 
-  /* ── Status bar ───────────────────────────────── */
   .status-bar {
     display: flex;
     align-items: center;
@@ -128,7 +124,6 @@
     50%      { opacity: .3; }
   }
 
-  /* ── Language selector row ────────────────────── */
   .lang-row {
     display: flex;
     align-items: center;
@@ -150,7 +145,6 @@
     cursor: pointer;
     transition: border-color .2s;
   }
-
   .lang-select:focus { outline: none; border-color: var(--accent); }
 
   .swap-btn {
@@ -166,7 +160,6 @@
   }
   .swap-btn:hover { border-color: var(--accent); color: var(--accent); transform: rotate(180deg); }
 
-  /* ── Connect button ───────────────────────────── */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -181,10 +174,7 @@
     transition: all .18s;
   }
 
-  .btn-primary {
-    background: var(--ink);
-    color: #fff;
-  }
+  .btn-primary { background: var(--ink); color: #fff; }
   .btn-primary:hover { background: #333; }
   .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
 
@@ -216,14 +206,12 @@
     50%      { box-shadow: 0 0 0 12px rgba(200,75,47,0); }
   }
 
-  /* ── Transcript area ──────────────────────────── */
   .panels {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
     margin-top: 20px;
   }
-
   @media (max-width: 560px) { .panels { grid-template-columns: 1fr; } }
 
   .panel {
@@ -250,7 +238,6 @@
     color: var(--ink);
     min-height: 60px;
   }
-
   .panel-text.ur {
     font-size: 18px;
     direction: rtl;
@@ -263,7 +250,6 @@
     font-size: 13px;
   }
 
-  /* ── Log / history ────────────────────────────── */
   .log {
     width: 100%;
     max-width: 680px;
@@ -306,9 +292,9 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .log-item .orig { color: var(--ink); }
+  .log-item .orig  { color: var(--ink); }
   .log-item .trans { color: var(--accent); direction: rtl; text-align: right; }
-  .log-item .meta {
+  .log-item .meta  {
     grid-column: 1/-1;
     font-family: 'DM Mono', monospace;
     font-size: 10px;
@@ -317,7 +303,6 @@
     gap: 12px;
   }
 
-  /* ── Incoming audio badge ─────────────────────── */
   .incoming-badge {
     display: none;
     align-items: center;
@@ -334,15 +319,6 @@
   }
   .incoming-badge.show { display: flex; }
 
-  /* ── Divider ──────────────────────────────────── */
-  .divider {
-    width: 100%; max-width: 680px;
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 8px 0;
-  }
-
-  /* ── Waveform ─────────────────────────────────── */
   .waveform {
     width: 100%;
     height: 40px;
@@ -361,7 +337,6 @@
     transition: height .1s;
   }
 
-  /* ── Scrollbar ────────────────────────────────── */
   .log-list::-webkit-scrollbar { width: 4px; }
   .log-list::-webkit-scrollbar-track { background: transparent; }
   .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
@@ -370,7 +345,6 @@
 <body>
 <div class="app">
 
-  <!-- Header -->
   <header>
     <div class="logo-row">
       <div class="logo-dot"></div>
@@ -380,17 +354,14 @@
     <p class="subtitle">English ↔ اردو · Real-time Speech</p>
   </header>
 
-  <!-- Connection & Controls Card -->
   <div class="card">
 
-    <!-- Status -->
     <div class="card-label">Connection</div>
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
       <span id="statusText">Not connected</span>
     </div>
 
-    <!-- Language row -->
     <div class="card-label">Language Direction</div>
     <div class="lang-row" style="margin-bottom:20px">
       <select class="lang-select" id="srcLang">
@@ -408,7 +379,6 @@
       </select>
     </div>
 
-    <!-- Connect / Disconnect buttons -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn btn-primary" id="connectBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -424,26 +394,24 @@
       </button>
     </div>
 
-    <!-- Incoming audio badge -->
     <div class="incoming-badge" id="incomingBadge">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
       Incoming translation received
     </div>
 
-    <!-- Record button + waveform -->
     <div style="margin-top:20px">
       <button class="btn btn-record" id="recordBtn" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
         </svg>
         <span id="recordLabel">Hold to Speak</span>
       </button>
-
-      <!-- Waveform visualiser -->
       <div class="waveform" id="waveform"></div>
     </div>
 
-    <!-- Transcript panels -->
     <div class="panels">
       <div class="panel">
         <div class="panel-title">You said</div>
@@ -459,9 +427,8 @@
       </div>
     </div>
 
-  </div><!-- /card -->
+  </div>
 
-  <!-- History log -->
   <div class="log">
     <div class="log-header">Conversation history</div>
     <div class="log-list" id="logList">
@@ -469,7 +436,7 @@
     </div>
   </div>
 
-</div><!-- /app -->
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════
@@ -477,27 +444,24 @@
 // ══════════════════════════════════════════════════════════════════
 const NGROK_URL = "https://convene-chowtime-dripping.ngrok-free.dev";
 
-// ══════════════════════════════════════════════════════════════════
-//  IDs — change room/peer if you want multiple sessions
-// ══════════════════════════════════════════════════════════════════
 const ROOM_ID = "room1";
 const PEER_ID = "peer-" + Math.random().toString(36).slice(2, 7);
 
 // ── DOM refs ──────────────────────────────────────────────────────
-const statusDot    = document.getElementById("statusDot");
-const statusText   = document.getElementById("statusText");
-const connectBtn   = document.getElementById("connectBtn");
-const disconnectBtn= document.getElementById("disconnectBtn");
-const recordBtn    = document.getElementById("recordBtn");
-const recordLabel  = document.getElementById("recordLabel");
-const origText     = document.getElementById("origText");
-const transText    = document.getElementById("transText");
-const logList      = document.getElementById("logList");
-const srcLangSel   = document.getElementById("srcLang");
-const tgtLangSel   = document.getElementById("tgtLang");
-const swapBtn      = document.getElementById("swapBtn");
-const incomingBadge= document.getElementById("incomingBadge");
-const waveformEl   = document.getElementById("waveform");
+const statusDot     = document.getElementById("statusDot");
+const statusText    = document.getElementById("statusText");
+const connectBtn    = document.getElementById("connectBtn");
+const disconnectBtn = document.getElementById("disconnectBtn");
+const recordBtn     = document.getElementById("recordBtn");
+const recordLabel   = document.getElementById("recordLabel");
+const origText      = document.getElementById("origText");
+const transText     = document.getElementById("transText");
+const logList       = document.getElementById("logList");
+const srcLangSel    = document.getElementById("srcLang");
+const tgtLangSel    = document.getElementById("tgtLang");
+const swapBtn       = document.getElementById("swapBtn");
+const incomingBadge = document.getElementById("incomingBadge");
+const waveformEl    = document.getElementById("waveform");
 
 // ── State ─────────────────────────────────────────────────────────
 let ws            = null;
@@ -526,17 +490,12 @@ function setStatus(state, msg) {
 }
 
 function wsUrl() {
-  // Strip any trailing slash to prevent double-slash in path
   const clean = NGROK_URL.replace(/\/+$/, "");
-  // Convert https → wss  (ngrok always uses TLS)
   const base  = clean.replace(/^https/, "wss").replace(/^http/, "ws");
-  // ?ngrok-skip-browser-warning bypasses ngrok's 403 interstitial page
   return `${base}/ws/translation/${ROOM_ID}/${PEER_ID}?ngrok-skip-browser-warning=true`;
 }
 
-// ── Autoplay-blocked fallback ─────────────────────────────────────
 function showPlayPrompt(url) {
-  // Remove any existing prompt
   const existing = document.getElementById("playPrompt");
   if (existing) existing.remove();
 
@@ -552,7 +511,6 @@ function showPlayPrompt(url) {
     btn.remove();
   };
   document.body.appendChild(btn);
-  // Auto-remove after 10s
   setTimeout(() => { if (btn.parentNode) { URL.revokeObjectURL(url); btn.remove(); } }, 10000);
 }
 
@@ -569,7 +527,6 @@ function addLog(original, translated, latency, direction) {
   }
   const item = document.createElement("div");
   item.className = "log-item";
-
   const isUrSrc = direction && direction.startsWith("ur");
   item.innerHTML = `
     <div class="orig" style="${isUrSrc ? 'direction:rtl;text-align:right' : ''}">${escHtml(original)}</div>
@@ -606,60 +563,61 @@ function connect() {
     disconnectBtn.style.display = "";
     recordBtn.disabled = false;
 
-    // Send language config
     ws.send(JSON.stringify({
       type: "language-config",
       srcLang: srcLangSel.value,
       tgtLang: tgtLangSel.value,
     }));
 
-    // Keep-alive ping every 20s
     ws._ping = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN)
-        ws.send(JSON.stringify({type: "ping"}));
+        ws.send(JSON.stringify({ type: "ping" }));
     }, 20000);
   };
 
-  // pendingTranscript: holds the last transcript msg awaiting its audio blob
-  // Backend always sends: JSON (transcript/incoming_translation) THEN audio bytes
-  let pendingTranscript = null;
+  // ─────────────────────────────────────────────────────────────────
+  //  pendingTranscript = true  →  next blob is OUR OWN result
+  //  pendingTranscript = false →  next blob is from a REMOTE peer
+  // ─────────────────────────────────────────────────────────────────
+  let pendingTranscript = false;
 
   ws.onmessage = async (evt) => {
-    // ── Binary blob = TTS audio ──────────────────────────────────
+
+    // ── Binary blob = TTS audio ─────────────────────────────────
     if (evt.data instanceof Blob) {
-      if (evt.data.size < 100) return;  // ignore empty blobs
+      if (evt.data.size < 100) return;
+
+      // ✅ FIX: check BEFORE playing anything
+      if (pendingTranscript) {
+        // This blob is OUR OWN translation — Person 1 should NOT hear it
+        pendingTranscript = false;
+        return; // skip playback entirely
+      }
+
+      // Only reaches here for REMOTE peer audio → play it
       const url = URL.createObjectURL(evt.data);
       const audio = new Audio(url);
       audio.onended = () => URL.revokeObjectURL(url);
-
-      // Try autoplay; if blocked show a manual play button
       audio.play().catch(() => showPlayPrompt(url));
-
-      if (pendingTranscript) {
-        // This blob belongs to OUR OWN speech result — already showed text
-        pendingTranscript = null;
-      } else {
-        // This blob is from a REMOTE peer
-        showIncoming();
-      }
+      showIncoming();
       return;
     }
 
-    // ── Text JSON ─────────────────────────────────────────────────
+    // ── Text JSON ───────────────────────────────────────────────
     let msg;
     try { msg = JSON.parse(evt.data); } catch { return; }
 
     if (msg.type === "transcript") {
-      // Our own speech — audio blob arrives right after this JSON
-      pendingTranscript = msg;
+      // Our own speech result — mark that the next blob belongs to us
+      pendingTranscript = true;
       origText.textContent  = msg.original   || "—";
       transText.textContent = msg.translated || "—";
       addLog(msg.original, msg.translated, msg.latency_ms,
              `${srcLangSel.value} → ${tgtLangSel.value}`);
 
     } else if (msg.type === "incoming_translation") {
-      // Remote peer's speech text — their audio blob comes right after
-      pendingTranscript = null;
+      // Remote peer's text — their audio blob comes right after, play it
+      pendingTranscript = false;
       origText.textContent  = msg.original   || "—";
       transText.textContent = msg.translated || "—";
       addLog(msg.original, msg.translated, msg.latency_ms, "remote → me");
@@ -701,7 +659,6 @@ swapBtn.addEventListener("click", () => {
   srcLangSel.value = tgtLangSel.value;
   tgtLangSel.value = tmp;
 
-  // If connected, re-send config
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: "language-config",
@@ -722,7 +679,6 @@ async function startRecording() {
     return;
   }
 
-  // Waveform analyser
   audioCtx  = new AudioContext();
   analyser  = audioCtx.createAnalyser();
   analyser.fftSize = 64;
@@ -730,7 +686,6 @@ async function startRecording() {
   src.connect(analyser);
   drawWaveform();
 
-  // Pick supported MIME
   const mimeTypes = ["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/ogg"];
   const mime = mimeTypes.find(m => MediaRecorder.isTypeSupported(m)) || "";
 
@@ -742,7 +697,7 @@ async function startRecording() {
     }
   };
 
-  mediaRecorder.start(4000); // 250ms chunks
+  mediaRecorder.start(250);
   isRecording = true;
   recordBtn.classList.add("recording");
   recordLabel.textContent = "Recording… (click to stop)";
@@ -751,13 +706,8 @@ async function startRecording() {
 function stopRecording() {
   if (!isRecording) return;
   isRecording = false;
-  if (mediaRecorder && mediaRecorder.state !== "inactive") {
-    mediaRecorder.stop();
-  }
-  if (audioStream) {
-    audioStream.getTracks().forEach(t => t.stop());
-    audioStream = null;
-  }
+  if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+  if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
   if (audioCtx) { audioCtx.close(); audioCtx = null; }
   cancelAnimationFrame(animFrame);
   bars.forEach(b => b.style.height = "4px");
@@ -765,25 +715,21 @@ function stopRecording() {
   recordLabel.textContent = "Hold to Speak";
 }
 
-// Toggle on click
 recordBtn.addEventListener("click", () => {
   if (isRecording) stopRecording();
   else startRecording();
 });
 
-// ── Waveform animation ────────────────────────────────────────────
+// ── Waveform ──────────────────────────────────────────────────────
 function drawWaveform() {
   if (!analyser) return;
   const data = new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteFrequencyData(data);
-
   for (let i = 0; i < BARS; i++) {
-    const idx   = Math.floor(i * data.length / BARS);
-    const val   = data[idx] / 255;
-    const h     = Math.max(4, val * 36);
-    bars[i].style.height = h + "px";
+    const idx = Math.floor(i * data.length / BARS);
+    const val = data[idx] / 255;
+    bars[i].style.height = Math.max(4, val * 36) + "px";
   }
-
   animFrame = requestAnimationFrame(drawWaveform);
 }
 
