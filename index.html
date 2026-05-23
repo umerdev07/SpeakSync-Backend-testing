@@ -42,10 +42,7 @@
     padding: 32px 16px 60px;
   }
 
-  header {
-    text-align: center;
-    margin-bottom: 36px;
-  }
+  header { text-align: center; margin-bottom: 36px; }
 
   .logo-row {
     display: flex;
@@ -250,6 +247,35 @@
     font-size: 13px;
   }
 
+  /* Processing indicator */
+  .processing-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: #fef9ec;
+    color: #b07d00;
+    border: 1px solid #f5d97a;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    margin-top: 12px;
+    animation: slide-in .2s;
+  }
+  .processing-bar.show { display: flex; }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid #f5d97a;
+    border-top-color: #b07d00;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+  }
+
   .log {
     width: 100%;
     max-width: 680px;
@@ -394,6 +420,13 @@
       </button>
     </div>
 
+    <!-- Processing indicator (shown after stop, waiting for result) -->
+    <div class="processing-bar" id="processingBar">
+      <div class="spinner"></div>
+      <span>Translating…</span>
+    </div>
+
+    <!-- Incoming audio badge -->
     <div class="incoming-badge" id="incomingBadge">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
       Incoming translation received
@@ -440,28 +473,28 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-//  CONFIG — paste your ngrok HTTPS URL here (no trailing slash)
+//  CONFIG
 // ══════════════════════════════════════════════════════════════════
 const NGROK_URL = "https://convene-chowtime-dripping.ngrok-free.dev";
-
-const ROOM_ID = "room1";
-const PEER_ID = "peer-" + Math.random().toString(36).slice(2, 7);
+const ROOM_ID   = "room1";
+const PEER_ID   = "peer-" + Math.random().toString(36).slice(2, 7);
 
 // ── DOM refs ──────────────────────────────────────────────────────
-const statusDot     = document.getElementById("statusDot");
-const statusText    = document.getElementById("statusText");
-const connectBtn    = document.getElementById("connectBtn");
-const disconnectBtn = document.getElementById("disconnectBtn");
-const recordBtn     = document.getElementById("recordBtn");
-const recordLabel   = document.getElementById("recordLabel");
-const origText      = document.getElementById("origText");
-const transText     = document.getElementById("transText");
-const logList       = document.getElementById("logList");
-const srcLangSel    = document.getElementById("srcLang");
-const tgtLangSel    = document.getElementById("tgtLang");
-const swapBtn       = document.getElementById("swapBtn");
-const incomingBadge = document.getElementById("incomingBadge");
-const waveformEl    = document.getElementById("waveform");
+const statusDot      = document.getElementById("statusDot");
+const statusText     = document.getElementById("statusText");
+const connectBtn     = document.getElementById("connectBtn");
+const disconnectBtn  = document.getElementById("disconnectBtn");
+const recordBtn      = document.getElementById("recordBtn");
+const recordLabel    = document.getElementById("recordLabel");
+const origText       = document.getElementById("origText");
+const transText      = document.getElementById("transText");
+const logList        = document.getElementById("logList");
+const srcLangSel     = document.getElementById("srcLang");
+const tgtLangSel     = document.getElementById("tgtLang");
+const swapBtn        = document.getElementById("swapBtn");
+const incomingBadge  = document.getElementById("incomingBadge");
+const processingBar  = document.getElementById("processingBar");
+const waveformEl     = document.getElementById("waveform");
 
 // ── State ─────────────────────────────────────────────────────────
 let ws            = null;
@@ -473,7 +506,7 @@ let analyser      = null;
 let animFrame     = null;
 let logEmpty      = true;
 
-// Build waveform bars
+// Waveform bars
 const BARS = 24;
 const bars = [];
 for (let i = 0; i < BARS; i++) {
@@ -495,10 +528,14 @@ function wsUrl() {
   return `${base}/ws/translation/${ROOM_ID}/${PEER_ID}?ngrok-skip-browser-warning=true`;
 }
 
+function showProcessing(on) {
+  if (on) processingBar.classList.add("show");
+  else    processingBar.classList.remove("show");
+}
+
 function showPlayPrompt(url) {
   const existing = document.getElementById("playPrompt");
   if (existing) existing.remove();
-
   const btn = document.createElement("button");
   btn.id = "playPrompt";
   btn.className = "btn btn-primary";
@@ -521,10 +558,7 @@ function showIncoming() {
 }
 
 function addLog(original, translated, latency, direction) {
-  if (logEmpty) {
-    logList.innerHTML = "";
-    logEmpty = false;
-  }
+  if (logEmpty) { logList.innerHTML = ""; logEmpty = false; }
   const item = document.createElement("div");
   item.className = "log-item";
   const isUrSrc = direction && direction.startsWith("ur");
@@ -549,9 +583,8 @@ function connect() {
   setStatus("connecting", "Connecting…");
   connectBtn.disabled = true;
 
-  try {
-    ws = new WebSocket(wsUrl());
-  } catch(e) {
+  try { ws = new WebSocket(wsUrl()); }
+  catch(e) {
     setStatus("error", "Invalid URL — check NGROK_URL");
     connectBtn.disabled = false;
     return;
@@ -576,8 +609,8 @@ function connect() {
   };
 
   // ─────────────────────────────────────────────────────────────────
-  //  pendingTranscript = true  →  next blob is OUR OWN result
-  //  pendingTranscript = false →  next blob is from a REMOTE peer
+  //  pendingTranscript = true  → next blob is OUR OWN result
+  //  pendingTranscript = false → next blob is from a REMOTE peer
   // ─────────────────────────────────────────────────────────────────
   let pendingTranscript = false;
 
@@ -587,14 +620,15 @@ function connect() {
     if (evt.data instanceof Blob) {
       if (evt.data.size < 100) return;
 
-      // ✅ FIX: check BEFORE playing anything
+      showProcessing(false); // result aaya — spinner hatao
+
       if (pendingTranscript) {
-        // This blob is OUR OWN translation — Person 1 should NOT hear it
+        // Yeh OUR OWN translation blob hai — Person 1 ko mat sunao
         pendingTranscript = false;
-        return; // skip playback entirely
+        return;
       }
 
-      // Only reaches here for REMOTE peer audio → play it
+      // Sirf remote peer ki audio yahan aayegi → bajao
       const url = URL.createObjectURL(evt.data);
       const audio = new Audio(url);
       audio.onended = () => URL.revokeObjectURL(url);
@@ -608,15 +642,14 @@ function connect() {
     try { msg = JSON.parse(evt.data); } catch { return; }
 
     if (msg.type === "transcript") {
-      // Our own speech result — mark that the next blob belongs to us
       pendingTranscript = true;
+      showProcessing(false);
       origText.textContent  = msg.original   || "—";
       transText.textContent = msg.translated || "—";
       addLog(msg.original, msg.translated, msg.latency_ms,
              `${srcLangSel.value} → ${tgtLangSel.value}`);
 
     } else if (msg.type === "incoming_translation") {
-      // Remote peer's text — their audio blob comes right after, play it
       pendingTranscript = false;
       origText.textContent  = msg.original   || "—";
       transText.textContent = msg.translated || "—";
@@ -625,17 +658,11 @@ function connect() {
     } else if (msg.type === "ack") {
       setStatus("connected", `Ready · ${msg.srcLang} → ${msg.tgtLang}`);
     }
-    // pong / peer-languages silently ignored
   };
 
-  ws.onerror = () => {
-    setStatus("error", "WebSocket error — check URL / server");
-  };
+  ws.onerror = () => setStatus("error", "WebSocket error — check URL / server");
 
-  ws.onclose = () => {
-    setStatus("error", "Disconnected");
-    cleanup();
-  };
+  ws.onclose = () => { setStatus("error", "Disconnected"); cleanup(); };
 }
 
 function disconnect() {
@@ -650,6 +677,7 @@ function cleanup() {
   connectBtn.disabled = false;
   disconnectBtn.style.display = "none";
   recordBtn.disabled = true;
+  showProcessing(false);
   setStatus("", "Not connected");
 }
 
@@ -658,7 +686,6 @@ swapBtn.addEventListener("click", () => {
   const tmp = srcLangSel.value;
   srcLangSel.value = tgtLangSel.value;
   tgtLangSel.value = tmp;
-
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: "language-config",
@@ -679,6 +706,7 @@ async function startRecording() {
     return;
   }
 
+  // Waveform setup
   audioCtx  = new AudioContext();
   analyser  = audioCtx.createAnalyser();
   analyser.fftSize = 64;
@@ -691,13 +719,14 @@ async function startRecording() {
 
   mediaRecorder = new MediaRecorder(audioStream, mime ? { mimeType: mime } : {});
 
+  // ✅ Stream chunks every 250ms — backend continuously buffers them
   mediaRecorder.ondataavailable = (e) => {
     if (e.data && e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
       ws.send(e.data);
     }
   };
 
-  mediaRecorder.start(500);
+  mediaRecorder.start(250); // 250ms chunks stream karo
   isRecording = true;
   recordBtn.classList.add("recording");
   recordLabel.textContent = "Recording… (click to stop)";
@@ -706,9 +735,24 @@ async function startRecording() {
 function stopRecording() {
   if (!isRecording) return;
   isRecording = false;
-  if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop(); // yeh last chunk bhi bhejna fire karega
+  }
+
+  // ✅ KEY FIX: Backend ko signal bhejo — "sentence khatam, ab process karo"
+  // Thoda delay taake last chunk pehle pohonch jaye
+  setTimeout(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "end_of_speech" }));
+    }
+  }, 100);
+
+  // Processing spinner dikhao jab tak result na aaye
+  showProcessing(true);
+
   if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
-  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  if (audioCtx)   { audioCtx.close(); audioCtx = null; }
   cancelAnimationFrame(animFrame);
   bars.forEach(b => b.style.height = "4px");
   recordBtn.classList.remove("recording");
